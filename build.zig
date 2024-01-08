@@ -10,10 +10,18 @@
 // A script to build and test the collector using Zig build system.
 // The script matches CMakeLists.txt as much as possible.
 
-// TODO: this script assumes zig 0.12.0-dev.1814.
-
 const std = @import("std");
+const builtin = @import("builtin");
 const Path = std.Build.LazyPath;
+
+comptime {
+    const required_zig_version = "0.12.0-dev.1814+5c0d58b71";
+
+    const required_zig = std.SemanticVersion.parse(required_zig_version) catch unreachable;
+    if (builtin.zig_version.order(required_zig) != .eq) {
+        @compileError(std.fmt.comptimePrint("Zig version {} does not meet the build requirement of {}", .{ builtin.zig_version, required_zig }));
+    }
+}
 
 // TODO: specify PACKAGE_VERSION and LIB*_VER_INFO.
 
@@ -36,78 +44,40 @@ pub fn build(b: *std.build.Builder) void {
 
     // Customize build by passing "-D<option_name>[=false]" in command line.
     // TODO: support enable_cplusplus
-    const build_shared_libs = b.option(bool, "BUILD_SHARED_LIBS",
-                "Build shared libraries (otherwise static ones)") orelse true;
+    const build_shared_libs = b.option(bool, "BUILD_SHARED_LIBS", "Build shared libraries (otherwise static ones)") orelse true;
     // TODO: support build_cord
-    const build_tests = b.option(bool, "build_tests",
-                                 "Build tests") orelse false;
+    const build_tests = b.option(bool, "build_tests", "Build tests") orelse false;
     // TODO: support enable_docs
-    const enable_threads = b.option(bool, "enable_threads",
-                "Support threads") orelse default_enable_threads;
-    const enable_parallel_mark = b.option(bool, "enable_parallel_mark",
-        "Parallelize marking and free list construction") orelse true;
-    const enable_thread_local_alloc = b.option(bool,
-        "enable_thread_local_alloc",
-        "Turn on thread-local allocation optimization") orelse true;
-    const enable_threads_discovery = b.option(bool,
-        "enable_threads_discovery",
-        "Enable threads discovery in GC") orelse true;
-    const enable_rwlock = b.option(bool, "enable_rwlock",
-        "Enable reader mode of the allocator lock") orelse false;
+    const enable_threads = b.option(bool, "enable_threads", "Support threads") orelse default_enable_threads;
+    const enable_parallel_mark = b.option(bool, "enable_parallel_mark", "Parallelize marking and free list construction") orelse true;
+    const enable_thread_local_alloc = b.option(bool, "enable_thread_local_alloc", "Turn on thread-local allocation optimization") orelse true;
+    const enable_threads_discovery = b.option(bool, "enable_threads_discovery", "Enable threads discovery in GC") orelse true;
+    const enable_rwlock = b.option(bool, "enable_rwlock", "Enable reader mode of the allocator lock") orelse false;
     // TODO: support enable_throw_bad_alloc_library
-    const enable_gcj_support = b.option(bool, "enable_gcj_support",
-                                        "Support for gcj") orelse true;
-    const enable_sigrt_signals = b.option(bool, "enable_sigrt_signals",
-        "Use SIGRTMIN-based signals for thread suspend/resume") orelse false;
+    const enable_gcj_support = b.option(bool, "enable_gcj_support", "Support for gcj") orelse true;
+    const enable_sigrt_signals = b.option(bool, "enable_sigrt_signals", "Use SIGRTMIN-based signals for thread suspend/resume") orelse false;
 
-    const enable_gc_debug = b.option(bool, "enable_gc_debug",
-        "Support for pointer back-tracing") orelse false;
-    const disable_gc_debug = b.option(bool, "disable_gc_debug",
-        "Disable debugging like GC_dump and its callees") orelse false;
-    const enable_java_finalization = b.option(bool,
-        "enable_java_finalization",
-        "Support for java finalization") orelse true;
-    const enable_atomic_uncollectable = b.option(bool,
-        "enable_atomic_uncollectable",
-        "Support for atomic uncollectible allocation") orelse true;
-    const enable_redirect_malloc = b.option(bool, "enable_redirect_malloc",
-        "Redirect malloc and friend to GC routines") orelse false;
-    const enable_disclaim = b.option(bool, "enable_disclaim",
-        "Support alternative finalization interface") orelse true;
-    const enable_dynamic_pointer_mask = b.option(bool,
-        "enable_dynamic_pointer_mask",
-        "Support pointer mask/shift set at runtime") orelse false;
-    const enable_large_config = b.option(bool, "enable_large_config",
-        "Optimize for large heap or root set") orelse false;
-    const enable_gc_assertions = b.option(bool, "enable_gc_assertions",
-        "Enable collector-internal assertion checking") orelse false;
-    const enable_mmap = b.option(bool, "enable_mmap",
-        "Use mmap instead of sbrk to expand the heap") orelse false;
-    const enable_munmap = b.option(bool, "enable_munmap",
-        "Return page to the OS if empty for N collections") orelse true;
-    const enable_dynamic_loading = b.option(bool, "enable_dynamic_loading",
-        "Enable tracing of dynamic library data roots") orelse true;
-    const enable_register_main_static_data = b.option(bool,
-        "enable_register_main_static_data",
-        "Perform the initial guess of data root sets") orelse true;
-    const enable_checksums = b.option(bool, "enable_checksums",
-        "Report erroneously cleared dirty bits") orelse false;
-    const enable_werror = b.option(bool, "enable_werror",
-        "Pass -Werror to the C compiler (treat warnings as errors)")
-        orelse false;
-    const enable_single_obj_compilation = b.option(bool,
-        "enable_single_obj_compilation",
-        "Compile all libgc source files into single .o") orelse false;
-    const disable_single_obj_compilation = b.option(bool,
-        "disable_single_obj_compilation",
-        "Compile each libgc source file independently") orelse false;
-    const enable_handle_fork = b.option(bool, "enable_handle_fork",
-        "Attempt to ensure a usable collector after fork()") orelse true;
-    const disable_handle_fork = b.option(bool, "disable_handle_fork",
-        "Prohibit installation of pthread_atfork() handlers") orelse false;
+    const enable_gc_debug = b.option(bool, "enable_gc_debug", "Support for pointer back-tracing") orelse false;
+    const disable_gc_debug = b.option(bool, "disable_gc_debug", "Disable debugging like GC_dump and its callees") orelse false;
+    const enable_java_finalization = b.option(bool, "enable_java_finalization", "Support for java finalization") orelse true;
+    const enable_atomic_uncollectable = b.option(bool, "enable_atomic_uncollectable", "Support for atomic uncollectible allocation") orelse true;
+    const enable_redirect_malloc = b.option(bool, "enable_redirect_malloc", "Redirect malloc and friend to GC routines") orelse false;
+    const enable_disclaim = b.option(bool, "enable_disclaim", "Support alternative finalization interface") orelse true;
+    const enable_dynamic_pointer_mask = b.option(bool, "enable_dynamic_pointer_mask", "Support pointer mask/shift set at runtime") orelse false;
+    const enable_large_config = b.option(bool, "enable_large_config", "Optimize for large heap or root set") orelse false;
+    const enable_gc_assertions = b.option(bool, "enable_gc_assertions", "Enable collector-internal assertion checking") orelse false;
+    const enable_mmap = b.option(bool, "enable_mmap", "Use mmap instead of sbrk to expand the heap") orelse false;
+    const enable_munmap = b.option(bool, "enable_munmap", "Return page to the OS if empty for N collections") orelse true;
+    const enable_dynamic_loading = b.option(bool, "enable_dynamic_loading", "Enable tracing of dynamic library data roots") orelse true;
+    const enable_register_main_static_data = b.option(bool, "enable_register_main_static_data", "Perform the initial guess of data root sets") orelse true;
+    const enable_checksums = b.option(bool, "enable_checksums", "Report erroneously cleared dirty bits") orelse false;
+    const enable_werror = b.option(bool, "enable_werror", "Pass -Werror to the C compiler (treat warnings as errors)") orelse false;
+    const enable_single_obj_compilation = b.option(bool, "enable_single_obj_compilation", "Compile all libgc source files into single .o") orelse false;
+    const disable_single_obj_compilation = b.option(bool, "disable_single_obj_compilation", "Compile each libgc source file independently") orelse false;
+    const enable_handle_fork = b.option(bool, "enable_handle_fork", "Attempt to ensure a usable collector after fork()") orelse true;
+    const disable_handle_fork = b.option(bool, "disable_handle_fork", "Prohibit installation of pthread_atfork() handlers") orelse false;
     // TODO: support enable_emscripten_asyncify
-    const install_headers = b.option(bool, "install_headers",
-        "Install header and pkg-config metadata files") orelse true;
+    const install_headers = b.option(bool, "install_headers", "Install header and pkg-config metadata files") orelse true;
     // TODO: support with_libatomic_ops, without_libatomic_ops
 
     var lib = b.addStaticLibrary(.{
@@ -268,10 +238,8 @@ pub fn build(b: *std.build.Builder) void {
 
     if (enable_redirect_malloc) {
         if (enable_gc_debug) {
-            flags.append("-D REDIRECT_MALLOC=GC_debug_malloc_replacement")
-                catch unreachable;
-            flags.append("-D REDIRECT_REALLOC=GC_debug_realloc_replacement")
-                catch unreachable;
+            flags.append("-D REDIRECT_MALLOC=GC_debug_malloc_replacement") catch unreachable;
+            flags.append("-D REDIRECT_REALLOC=GC_debug_realloc_replacement") catch unreachable;
             flags.append("-D REDIRECT_FREE=GC_debug_free") catch unreachable;
         } else {
             flags.append("-D REDIRECT_MALLOC=GC_malloc") catch unreachable;
@@ -331,8 +299,7 @@ pub fn build(b: *std.build.Builder) void {
         }) catch unreachable;
     }
 
-    if (enable_single_obj_compilation
-            or (build_shared_libs and !disable_single_obj_compilation)) {
+    if (enable_single_obj_compilation or (build_shared_libs and !disable_single_obj_compilation)) {
         source_files.clearAndFree();
         source_files.appendSlice(&.{
             "extra/gc.c",
@@ -398,8 +365,7 @@ pub fn build(b: *std.build.Builder) void {
 
     // pthread_setname_np, if available, may have 1, 2 or 3 arguments.
     if (target.isDarwin()) {
-        flags.append("-D HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID")
-                catch unreachable;
+        flags.append("-D HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID") catch unreachable;
     } else if (target.isLinux()) {
         flags.append("-D HAVE_PTHREAD_SETNAME_NP_WITH_TID") catch unreachable;
     } else {
@@ -469,22 +435,11 @@ pub fn build(b: *std.build.Builder) void {
     }
 }
 
-fn addTest(b: *std.Build, lib: *std.Build.Step.Compile,
-           test_step: *std.Build.Step, flags: std.ArrayList([]const u8),
-           testname: []const u8) void {
-    const filename = b.allocator.alloc(u8, "tests/".len + testname.len
-                                            + ".c".len) catch @panic("OOM");
-    _ = std.fmt.bufPrint(filename, "tests/{s}.c", .{testname})
-                        catch @panic("Error joining paths");
-    const test_exe = b.addExecutable(.{
-        .name = testname,
-        .optimize = lib.optimize,
-        .target = lib.target
-    });
-    test_exe.addCSourceFile(.{
-        .file = Path.relative(filename),
-        .flags = flags.items
-    });
+fn addTest(b: *std.Build, lib: *std.Build.Step.Compile, test_step: *std.Build.Step, flags: std.ArrayList([]const u8), testname: []const u8) void {
+    const filename = b.allocator.alloc(u8, "tests/".len + testname.len + ".c".len) catch @panic("OOM");
+    _ = std.fmt.bufPrint(filename, "tests/{s}.c", .{testname}) catch @panic("Error joining paths");
+    const test_exe = b.addExecutable(.{ .name = testname, .optimize = lib.optimize, .target = lib.target });
+    test_exe.addCSourceFile(.{ .file = Path.relative(filename), .flags = flags.items });
     test_exe.addIncludePath(.{ .path = "include" });
     test_exe.linkLibrary(lib);
     test_exe.linkLibC();
@@ -492,12 +447,9 @@ fn addTest(b: *std.Build, lib: *std.Build.Step.Compile,
     test_step.dependOn(&run_test_exe.step);
 }
 
-fn installHeader(b: *std.Build, lib: *std.Build.Step.Compile,
-                 hfile: []const u8) void {
-   const inc_path = "include/";
-   const src_path = b.allocator.alloc(u8, inc_path.len + hfile.len)
-                        catch @panic("OOM");
-   _ = std.fmt.bufPrint(src_path, "{s}{s}", .{inc_path, hfile})
-                        catch @panic("Error joining paths");
-   lib.installHeader(src_path, hfile);
+fn installHeader(b: *std.Build, lib: *std.Build.Step.Compile, hfile: []const u8) void {
+    const inc_path = "include/";
+    const src_path = b.allocator.alloc(u8, inc_path.len + hfile.len) catch @panic("OOM");
+    _ = std.fmt.bufPrint(src_path, "{s}{s}", .{ inc_path, hfile }) catch @panic("Error joining paths");
+    lib.installHeader(src_path, hfile);
 }
